@@ -1,8 +1,11 @@
+from django.db import transaction
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 
-from user_management.models import CustomUser, Organization
+from user_management.models import CustomUser, Organization, PersonalPassword, OrganizationPassword, \
+OrganizationPasswordAccessLevel
 
 
 class SignUprSerializer(serializers.ModelSerializer):
@@ -43,3 +46,35 @@ class OrganizationSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError('This field is required.')
 
+
+class PersonalPasswordSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PersonalPassword
+        fields = ('id', 'site', 'login_url', 'username', 'password', 'owner', 'users')
+
+
+class OrganizationPasswordSerializer(serializers.ModelSerializer):
+    users = serializers.ListField(write_only=True)
+
+    class Meta:
+        model = OrganizationPassword
+        fields = ('id', 'site', 'login_url', 'username', 'password', 'organization', 'users')
+
+    @transaction.atomic
+    def create(self, validated_data):
+        organization_password = OrganizationPassword.objects.create(
+            site=validated_data['site'],
+            login_url=validated_data['login_url'],
+            username=validated_data['username'],
+            password=validated_data['password'],
+            organization=validated_data['organization']
+        )
+        if validated_data.get('users'):
+            for each in validated_data.get('users'):
+                OrganizationPasswordAccessLevel.objects.create(
+                    organization_password=organization_password,
+                    user_id=each.get('user'),
+                    access_level=each.get('access_level')
+                )
+        return organization_password
