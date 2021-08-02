@@ -139,5 +139,5 @@ class OrganizationPasswordViewSet(viewsets.ModelViewSet):
                 errors = serialized_data.errors
                 return Response({'message': errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error = "Error in saving data %s " % e
+            error = "Error in saving data %s" % e
             return Response({'message': error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

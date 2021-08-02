@@ -78,3 +78,29 @@ class OrganizationPasswordSerializer(serializers.ModelSerializer):
                     access_level=each.get('access_level')
                 )
         return organization_password
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        if validated_data.get('site'):
+            instance.site = validated_data.get('site')
+        if validated_data.get('login_url'):
+            instance.login_url = validated_data.get('login_url')
+        if validated_data.get('username'):
+            instance.username = validated_data.get('username')
+        if validated_data.get('password'):
+            instance.password = validated_data.get('password')
+        if validated_data.get('organization'):
+            instance.organization = validated_data.get('organization')
+
+        instance.users.clear()
+        instance.save()
+
+        users = validated_data.pop('users')
+        if users:
+            for each in users:
+                OrganizationPasswordAccessLevel.objects.create(
+                    organization_password=instance,
+                    user_id=each.get('user'),
+                    access_level=each.get('access_level')
+                )
+        return instance
